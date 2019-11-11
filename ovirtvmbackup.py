@@ -3,7 +3,7 @@
 
 #
 # Copyright (c) 2017 Red Hat, Inc.
-# Copyright (c) 2019 ALLWAY#
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -264,26 +264,33 @@ if __name__ == "__main__":
     storage_domains_service = system_service.storage_domains_service()
 
     # Look up fot the storage domain by name:
-    storage_domain = storage_domains_service.list()[0]
+    storage_domain = storage_domains_service.list()
+    for d in storage_domain:
+        # Get a reference to the storage domain service in which the disk snapshots reside:
+        storage_domain_service = storage_domains_service.storage_domain_service(d.id)
 
-    # Get a reference to the storage domain service in which the disk snapshots reside:
-    storage_domain_service = storage_domains_service.storage_domain_service(storage_domain.id)
+        # Get a reference to the disk snapshots service:
+        # Note: we are retrieving here *all* the snapshots of the storage domain.
+        # Should find a more efficient means in the future.
+        disk_snapshot_service = storage_domain_service.disk_snapshots_service()
 
-    # Get a reference to the disk snapshots service:
-    # Note: we are retrieving here *all* the snapshots of the storage domain.
-    # Should find a more efficient means in the future.
-    disk_snapshot_service = storage_domain_service.disk_snapshots_service()
+        # Get a list of disk snapshots by a disk ID
+        all_disk_snapshots = disk_snapshot_service.list()
+    
+        #for s in all_disk_snapshots:
+            #print (s.snapshot.id)
+            #print (':')
+            #print (snap.id)
 
-    # Get a list of disk snapshots by a disk ID
-    all_disk_snapshots = disk_snapshot_service.list()
+        # Filter disk snapshots list by snap id
+        disk_snapshots = [s for s in all_disk_snapshots if s.snapshot.id == snap.id]
 
-    # Filter disk snapshots list by snap id
-    disk_snapshots = [s for s in all_disk_snapshots if s.snapshot.id == snap.id]
-
-    # Download disk snapshots
-    for disk_snapshot in disk_snapshots:
-        download_disk_snapshot(disk_snapshot)
-
+        # Download disk snapshots
+        for disk_snapshot in disk_snapshots:
+            #print ('begin download_disk_snapshot:')
+            #print (disk_snapshot.id)
+            download_disk_snapshot(disk_snapshot)
+            #print (':end download_disk_snapshot')
     # Remove the snapshot:
     snap_service.remove()
     logging.info('Removed the snapshot \'%s\'.', snap.description)
