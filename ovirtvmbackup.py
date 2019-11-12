@@ -239,15 +239,17 @@ if __name__ == "__main__":
     sl =snaps_service.list()
     
     for sn in sl:
-        if sn.description <> 'Active VM':
+        try:
             ss = snaps_service.snapshot_service(sn.id)
-            ss.remove()
+            ss.remove() 
             # Waiting for snapshot remove to complete
             try:
                 while ss.get():
                     time.sleep(1)
             except sdk.NotFoundError:
                 pass
+        except sdk.Error:
+            pass
 
     # end delete all exist snapshot to do full backup.
     snap = snaps_service.add(
