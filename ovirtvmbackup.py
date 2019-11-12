@@ -239,8 +239,8 @@ if __name__ == "__main__":
     sl =snaps_service.list()
     
     for sn in sl:
-        ss = snaps_service.snapshot_service(sn.id)
         if sn.description <> 'Active VM':
+            ss = snaps_service.snapshot_service(sn.id)
             ss.remove()
             # Waiting for snapshot remove to complete
             try:
