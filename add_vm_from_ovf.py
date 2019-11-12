@@ -41,7 +41,7 @@ vms_service = connection.system_service().vms_service()
 
 # Use the "add" method to create a new virtual machine:
 
-ovf_file_path = '/home/backup/winxp/2019-11-09-09/winxp.ovf'
+ovf_file_path = '/data/ovirtbackup/winxp-e55cebcc-f354-4b66-b858-a11e1c647f1a.ovf'
 ovf_data = open(ovf_file_path, 'r').read()
 vm = vms_service.add(
     types.Vm(
