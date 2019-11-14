@@ -13,11 +13,16 @@ yum install -y http://resources.ovirt.org/pub/yum-repo/ovirt-release43.rpm 
 yum install -y qemu-img python-ovirt-engine-sdk4 python-requests git ovirt-guest-agent
 yum install -y ovirt-imageio-common
 
+curl --insecure "https://engine.localdomain/ovirt-engine/services/pki-resource?resource=ca-certificate&format=X509-PEM-CA" -o ca.crt
+
+vi pass.txt
+
+password
+
 backup:
 ./ovirtvmbackup.py --engine-url https://engine.localdomain --username admin@internal --password-file pass.txt -c ca.crt --backup-dir /data/backup winxp
 
-more  pass.txt
-password
+
 
 restore disk:
 ./upload_disk.py --engine-url https://engine.localdomain --username admin@internal -file pass.txt --disk-format qcow2  --sd-name iscsilvm -c ca.crt /data/backup/winxp/20191114142105/winxpclone_Disk1-f75ba2a0-f7e5-477b-bb3d-38acbce8f4fc
