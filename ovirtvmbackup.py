@@ -30,8 +30,44 @@ import uuid
 from six.moves.http_client import HTTPSConnection
 from six.moves.urllib.parse import urlparse
 
+import argparse
+import getpass
+import subprocess
 
 logging.basicConfig(level=logging.DEBUG, filename='ovirtvmbackup.log')
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="ovirtvmbackup")
+
+    parser.add_argument(
+        "vmname",
+        help="name of virtual machine")
+
+    parser.add_argument(
+        "--backup-dir",
+        required=True,
+        help="dir to store backup")
+
+    parser.add_argument(
+        "--engine-url",
+        required=True,
+        help="transfer URL (e.g. https://engine_fqdn:port)")
+
+    parser.add_argument(
+        "--username",
+        required=True,
+        help="username of engine API")
+
+    parser.add_argument(
+        "--password-file",
+        help="file containing password of the specified by user (if file is "
+             "not specified, read from standard input)")
+
+    parser.add_argument(
+        "-c", "--cafile",
+        help="path to oVirt engine certificate for verifying server.")
+
+    return parser.parse_args()
 
 
 # This example will connect to the server, loop over the disk snapshots
@@ -39,17 +75,6 @@ logging.basicConfig(level=logging.DEBUG, filename='ovirtvmbackup.log')
 # Note: in order to get the disk's snapshots, we are retrieving *all*
 # the snapshots of the storage domain, and filter accordingly.
 # Should find a more efficient means in the future.
-
-def get_connection():
-    # Create the connection to the server:
-    return sdk.Connection(
-        url='https://engine.localdomain/ovirt-engine/api',
-        username='admin@internal',
-        password='password',
-        ca_file='ca.pem',
-        debug=True,
-        log=logging.getLogger(),
-    )
 
 def get_transfer_service(disk_snapshot_id):
     # Get a reference to the service that manages the image transfer:
@@ -88,7 +113,7 @@ def get_proxy_connection(proxy_url):
         context=context,
     )
 
-def download_disk_snapshot(disk_snapshot):
+def download_disk_snapshot(disk_snapshot,download_dir):
     print("Downloading disk snapshot %s" % disk_snapshot.id)
 
     transfer_service = None
@@ -97,7 +122,7 @@ def download_disk_snapshot(disk_snapshot):
         transfer = transfer_service.get()
         proxy_url = urlparse(transfer.proxy_url)
         proxy_connection = get_proxy_connection(proxy_url)
-        path = disk_snapshot.id
+        path = download_dir + '/' + disk_snapshot.alias + '-' + disk_snapshot.id
 
         with open(path, "wb") as mydisk:
             # Set needed headers for downloading:
@@ -155,17 +180,33 @@ def download_disk_snapshot(disk_snapshot):
                 pass
 
 if __name__ == "__main__":
+    args = parse_args()
     # The name of the application, to be used as the 'origin' of events
     # sent to the audit log:
     APPLICATION_NAME = 'ovirtvmbackup'
     
     # The name of the virtual machine that contains the data that we
     # want to back-up:
-    DATA_VM_NAME = 'winxp'
+    DATA_VM_NAME = args.vmname
+    VM_BACKUP_DIR = args.backup_dir
 
+    # Create the connection to the server:
+    print("Connecting...")
 
-    # Create a connection to the server:
-    connection = get_connection()
+    if args.password_file:
+        with open(args.password_file) as f:
+            password = f.read().rstrip('\n') # ovirt doesn't support empty lines in password
+    else:
+        password = getpass.getpass()
+
+    connection = sdk.Connection(
+        url=args.engine_url + '/ovirt-engine/api',
+        username=args.username,
+        password=password,
+        ca_file=args.cafile,
+        debug=True,
+        log=logging.getLogger(),
+    )
 
     # Get a reference to the root service:
     system_service = connection.system_service()
@@ -218,12 +259,15 @@ if __name__ == "__main__":
         ),
     )
     event_id += 1
+    bckfiledir = VM_BACKUP_DIR + "/" + DATA_VM_NAME + "/" + str(time.strftime("%Y%m%d%H%M%S"))
+    mkdir = "mkdir -p " + bckfiledir
+    subprocess.call(mkdir, shell=True)
     # Save the OVF to a file, so that we can use to restore the virtual
     # machine later. The name of the file is the name of the virtual
     # machine, followed by a dash and the identifier of the virtual machine,
     # to make it unique:
     ovf_data = data_vm.initialization.configuration.data
-    ovf_file = '%s-%s.ovf' % (data_vm.name, data_vm.id)
+    ovf_file = '%s/%s-%s.ovf' % (bckfiledir,data_vm.name, data_vm.id)
     with open(ovf_file, 'w') as ovs_fd:
         ovs_fd.write(ovf_data.encode('utf-8'))
     logging.info('Wrote OVF to file \'%s\'.', os.path.abspath(ovf_file))
@@ -308,7 +352,7 @@ if __name__ == "__main__":
         for disk_snapshot in disk_snapshots:
             #print ('begin download_disk_snapshot:')
             #print (disk_snapshot.id)
-            download_disk_snapshot(disk_snapshot)
+            download_disk_snapshot(disk_snapshot,bckfiledir)
             #print (':end download_disk_snapshot')
     # Remove the snapshot:
     snap_service.remove()
