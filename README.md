@@ -17,7 +17,7 @@ restore disk:
 ./upload_disk.py --engine-url https://engine.localdomain --username admin@internal -file pass.txt --disk-format qcow2  --sd-name iscsilvm -c ca.crt /data/backup/winxp/20191114142105/winxpclone_Disk1-f75ba2a0-f7e5-477b-bb3d-38acbce8f4fc
 
 restore ovf:
-edit add_vm_from_ovf.py set correct connection = sdk.Connection,ovf_file_path
+edit add_vm_from_ovf.py set correct connection parameter,ovf_file_path parameter
 ./add_vm_from_ovf.py
 
 on engine web admin:
