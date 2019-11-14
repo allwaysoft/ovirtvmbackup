@@ -1,5 +1,11 @@
 # ovirtvmbackup
 ovirt rhv agentless vm backup
+This script should run on any machine and it connect to `oVirt API` to do:
+- Download the VM's ovf
+- Delete snapshot to do full disk backup
+- Create snapshot 
+- Download the VM's snapshot disk(it's full disk copy)
+- Delete snapshot
 
 yum install -y epel-release
 yum install -y http://resources.ovirt.org/pub/yum-repo/ovirt-release43.rpm 
